@@ -8,7 +8,7 @@ from threading import Thread, Lock
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from you_get import common
-from multiprocessing import Pool
+from multiprocessing import Pool, Process, JoinableQueue
 from concurrent.futures.thread import ThreadPoolExecutor
 
 
@@ -64,15 +64,15 @@ def get_mid(browser, up_name):
 
 def do_download(urls, save_path):
     """test1 单线程循环"""
-    for url in urls:
-        try:
-            download_video(url, save_path)
-            sleep(3)
-        except:
-            continue
-    print("视频下载完成！")
-    print("已下载%d个视频，视频保存在%s" % (len(urls), save_path))
-    exit()
+    # for url in urls:
+    #     try:
+    #         download_video(url, save_path)
+    #         sleep(3)
+    #     except:
+    #         continue
+    # print("视频下载完成！")
+    # print("已下载%d个视频，视频保存在%s" % (len(urls), save_path))
+    # exit()
     """test2 线程池"""
     # thread_pool = ThreadPoolExecutor(max_workers=2)
     # for url in urls:
@@ -91,8 +91,9 @@ def do_download(urls, save_path):
     # pool =Pool(2)
     # for url in urls:
     #     pool.map(do_download, url, save_path)
-    #     pool.close()
-    #     pool.join()
+    # pool.close()
+    # pool.join()
+    """队列模式"""
 
 
 """
@@ -181,6 +182,21 @@ def get_up_video_urls(mid):
         exit()
 
 
+def consumer(q, save_path):
+    while True:
+        url = q.get()
+        print('链接%s从队列中取出' % url)
+        download_video(url, save_path)
+        q.task_done()
+
+
+def producer(urls, q):
+    for url in urls:
+        q.put(url)
+        print('链接%s放入下载队列' % url)
+    q.join()
+
+
 def main(up_name, save_path):
     try:
         mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True
@@ -188,10 +204,19 @@ def main(up_name, save_path):
     except PermissionError:
         print("no permission to mkdir")
         exit()
+    print("程序执行中...")
     browser = get_browser()
+    print("正在获取%s的信息..." % up_name)
     mid = get_mid(browser, up_name)
+    print("获取到%s的mid:%s" % (up_name, mid))
     urls = get_up_video_urls(mid)
-    do_download(urls, save_path)
+    print("获取到%s条视频..." % len(urls))
+    # do_download(urls, save_path)
+    q = JoinableQueue()
+    p = Process(target=consumer, args=(q, save_path))
+    p.daemon = True
+    p.start()
+    producer(urls, q)
 
 
 if __name__ == '__main__':
