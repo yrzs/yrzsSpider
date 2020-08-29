@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 
 
 def tyc_comp(keyword):
+
     params = {
         "key": keyword,
     }
