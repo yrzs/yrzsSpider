@@ -7,6 +7,7 @@ import requests
 
 
 def baidu_comp(keyword):
+
     params = {
         "q": keyword,
         "t": 0,

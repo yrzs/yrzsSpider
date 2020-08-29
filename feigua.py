@@ -10,6 +10,7 @@ import xlwt
 
 
 # 构造滑动轨迹
+
 def get_track(distance):
     track = []
     current = 0
